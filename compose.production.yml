@@ -1,0 +1,46 @@
+name: kylin-blog
+services:
+  web:
+    image: kylin-blog-web:latest
+    build:
+      context: .
+      args:
+        SITE_URL: https://blog.tsinbei.com
+        PUBLIC_RESOURCE_ORIGIN: https://blog.tsinbei.cn
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      SITE_URL: https://blog.tsinbei.com
+      DIRECTUS_URL: http://directus:8055
+    depends_on:
+      directus:
+        condition: service_healthy
+    ports:
+      - "192.168.32.1:4433:4433"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4433/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 15s
+      start_period: 60s
+  directus:
+    image: directus/directus:12.6.0
+    restart: unless-stopped
+    env_file: directus/runtime.env
+    environment:
+      PUBLIC_URL: http://localhost:8055
+      CACHE_ENABLED: "true"
+      CACHE_STORE: memory
+      CACHE_TTL: 1m
+      CACHE_AUTO_PURGE: "true"
+    ports:
+      - "127.0.0.1:8055:8055"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8055/server/ping').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 10s
+      start_period: 60s
+      retries: 12
+    volumes:
+      - ./directus/database:/directus/database
+      - ./directus/uploads:/directus/uploads
+      - ./directus/extensions:/directus/extensions

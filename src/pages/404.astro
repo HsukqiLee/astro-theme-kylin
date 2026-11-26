@@ -1,0 +1,21 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { siteConfig } from '../lib/config';
+Astro.response.status = 404;
+---
+<BaseLayout title={`404 - ${siteConfig.title}`}>
+  <div class="card">
+    <div class="card-content">
+      <p class="title has-text-weight-normal">404 Not found.</p>
+      <p class="subtitle">页面不存在或已被移动。</p>
+    </div>
+    <div class="card-footer">
+      <p class="card-footer-item">
+        <span><a href="/">返回首页</a></span>
+      </p>
+      <p class="card-footer-item">
+        <span><a href="/archives/">浏览归档</a></span>
+      </p>
+    </div>
+  </div>
+</BaseLayout>

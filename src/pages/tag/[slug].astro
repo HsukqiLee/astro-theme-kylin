@@ -1,0 +1,48 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
+import Pagination from '../../components/Pagination.astro';
+import { directus, postCardFields, type Post, type Tag } from '../../lib/directus';
+import { readItems, aggregate } from '@directus/sdk';
+import { siteConfig } from '../../lib/config';
+
+const slug = Astro.params.slug;
+if (!slug) return Astro.rewrite('/404');
+const tags = await directus.request(readItems('tags', { filter: { slug: { _eq: slug } }, limit: 1, fields: ['id', 'name', 'slug'] }));
+const tag = (tags as Tag[])[0];
+if (!tag) return Astro.rewrite('/404');
+
+const PER_PAGE = 10;
+const page = Math.max(1, parseInt(Astro.url.searchParams.get('page') || '1', 10) || 1);
+const posts = (await directus.request(
+  readItems('posts', {
+    fields: postCardFields,
+    filter: { status: { _eq: 'published' }, type: { _eq: 'post' }, tags: { tags_id: { slug: { _eq: slug } } } },
+    sort: ['-published_at'],
+    page,
+    limit: PER_PAGE
+  })
+)) as Post[];
+
+let total = posts.length;
+try {
+  const cnt = await directus.request(aggregate('posts', { query: { filter: { status: { _eq: 'published' }, type: { _eq: 'post' }, tags: { tags_id: { slug: { _eq: slug } } } } }, aggregate: { count: ['id'] } }));
+  total = Number((cnt as any[])[0]?.count?.id ?? posts.length);
+} catch { /* ignore */ }
+const pages = Math.max(1, Math.ceil(total / PER_PAGE));
+---
+<BaseLayout title={`#${tag.name} - ${siteConfig.title}`}>
+  <div class="card">
+    <div class="card-content">
+      <nav class="breadcrumb" aria-label="breadcrumbs">
+        <ul>
+          <li><a href="/">首页</a></li>
+          <li><a href="/tags/">标签</a></li>
+          <li class="is-active"><a href="#" aria-current="page">{tag.name}</a></li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+  {posts.map((post) => <PostCard post={post} />)}
+  <Pagination page={page} pages={pages} baseUrl={`/tag/${tag.slug}/`} />
+</BaseLayout>

@@ -1,0 +1,102 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import '../styles/theme.css';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import Sidebar from '../components/Sidebar.astro';
+import Search from '../components/Search.astro';
+import { siteConfig } from '../lib/config';
+import { resourceOrigin, resourceUrl } from '../lib/urls';
+import { asideWidgets, type PageKind } from '../lib/aside';
+
+interface Props {
+  title: string;
+  description?: string;
+  tocHtml?: string;
+  isPost?: boolean;
+  pageKind?: PageKind;
+}
+const { title, description = siteConfig.title, tocHtml = '', isPost = false, pageKind = 'other' } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const page = Astro.url.searchParams.get('page');
+if (page && page !== '1') canonical.searchParams.set('page', page);
+const month = Astro.url.searchParams.get('m');
+if (month) canonical.searchParams.set('m', month);
+
+const kind: PageKind = isPost ? 'post' : pageKind;
+const { columnCount } = asideWidgets(kind);
+const mainClass =
+  columnCount === 1
+    ? 'column is-12 column-main'
+    : columnCount === 2
+      ? 'column is-8-tablet is-8-desktop is-8-widescreen has-order-2 column-main'
+      : 'column is-8-tablet is-8-desktop is-6-widescreen has-order-2 column-main';
+---
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="kylin:relative-time" content={String(siteConfig.features.relativeTime)} />
+    <meta name="kylin:api-origin" content={resourceOrigin} />
+    {resourceOrigin && <link rel="preconnect" href={resourceOrigin} crossorigin />}
+    <style is:inline>
+      /* critical: reserve a stable scrollbar gutter from first paint to avoid CLS */
+      html { scrollbar-gutter: stable; }
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      html.dark::-webkit-scrollbar, html.dark ::-webkit-scrollbar, body.dark ::-webkit-scrollbar { width: 12px; height: 12px; }
+    </style>
+    <script is:inline>
+      try { if (localStorage.getItem('kylin-dark') === '1') document.documentElement.classList.add('dark'); } catch (e) {}
+    </script>
+    <ClientRouter />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" type="application/rss+xml" title={siteConfig.title} href="/rss.xml" />
+    <link rel="icon" type="image/x-icon" href={siteConfig.favicon} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.4.1/css/all.min.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu:400,600|Source+Code+Pro&display=swap" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.7.2/css/bulma.min.css" />
+    {siteConfig.features.highlight && (
+    <link rel="stylesheet" id="hljs-theme" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/xcode.min.css" />
+  )}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/css/lightgallery-bundle.min.css" />
+  </head>
+  <body class={`is-${columnCount}-column`}>
+    <Navbar />
+    <div class="section">
+      <div class="container">
+        <div class="columns">
+          <main id="main" class={mainClass}>
+            <slot />
+          </main>
+          <Sidebar tocHtml={tocHtml} kind={kind} />
+        </div>
+      </div>
+    </div>
+    <Footer />
+
+    {siteConfig.features.search && <Search />}
+
+    {siteConfig.features.backToTop && (
+      <a id="back-to-top" class="card has-text-centered" href="javascript:;" title="Back to top"><i class="fas fa-chevron-up"></i></a>
+    )}
+
+    {siteConfig.features.gallery && (
+      <script is:inline src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/lightgallery.umd.min.js"></script>
+    )}
+    {siteConfig.features.highlight && (
+      <script is:inline src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+    )}
+    <script is:inline src={resourceUrl('/js/main.js')}></script>
+    <script is:inline src={resourceUrl('/js/theme.js')}></script>
+    {siteConfig.features.clipboard && <script is:inline src={resourceUrl('/js/clipboard.js')}></script>}
+    {siteConfig.features.backToTop && <script is:inline src={resourceUrl('/js/back-to-top.js')}></script>}
+    {siteConfig.features.search && <script is:inline src={resourceUrl('/js/search.js')}></script>}
+    {siteConfig.features.animation && <script is:inline src={resourceUrl('/js/animation.js')}></script>}
+  </body>
+</html>

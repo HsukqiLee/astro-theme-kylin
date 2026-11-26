@@ -1,0 +1,75 @@
+---
+import { directus } from '../../lib/directus';
+import { siteConfig } from '../../lib/config';
+import { aggregate } from '@directus/sdk';
+
+let postCount = 0, catCount = 0, runDays = '--';
+try {
+  const [pc, cc] = await Promise.all([
+    directus.request(aggregate('posts', { aggregate: { count: ['id'] }, query: { filter: { status: { _eq: 'published' }, type: { _eq: 'post' } } } })),
+    directus.request(aggregate('categories', { aggregate: { count: ['id'] } }))
+  ]);
+  postCount = Number((pc as any[])[0]?.count?.id ?? 0);
+  catCount = Number((cc as any[])[0]?.count?.id ?? 0);
+} catch { /* ignore */ }
+try {
+  if (siteConfig.installTime) {
+    runDays = String(Math.floor((Date.now() - new Date(siteConfig.installTime + 'T00:00:00').getTime()) / 86400000));
+  }
+} catch { /* ignore */ }
+
+const p = siteConfig.profile;
+---
+<div class="card widget">
+  <div class="card-content">
+    <nav class="level">
+      <div class="level-item has-text-centered">
+        <div>
+          <img class="avatar image is-128x128 has-mb-6 profile-avatar is-rounded" src={p.avatar} alt={p.author} />
+          {p.author && <p class="is-size-4 is-block">{p.author}</p>}
+          {p.authorTitle && <p class="is-size-6 is-block hitokoto">{p.authorTitle}</p>}
+          {p.location && (
+            <p class="is-size-6 is-flex is-flex-center has-text-grey">
+              <i class="fas fa-map-marker-alt has-mr-7"></i>
+              <span>{p.location}</span>
+            </p>
+          )}
+        </div>
+      </div>
+    </nav>
+    <nav class="level is-mobile">
+      <div class="level-item has-text-centered is-marginless">
+        <div>
+          <p class="heading">文章</p>
+          <p class="title has-text-weight-normal">{postCount}</p>
+        </div>
+      </div>
+      <div class="level-item has-text-centered is-marginless">
+        <div>
+          <p class="heading">分类</p>
+          <p class="title has-text-weight-normal">{catCount}</p>
+        </div>
+      </div>
+      <div class="level-item has-text-centered is-marginless">
+        <div>
+          <p class="heading">天数</p>
+          <p class="title has-text-weight-normal">{runDays}</p>
+        </div>
+      </div>
+    </nav>
+    {p.followLink && (
+      <div class="level">
+        <a class="level-item button is-link is-rounded" href={p.followLink}>订阅</a>
+      </div>
+    )}
+    {p.socialLinks.length > 0 && (
+      <div class="level is-mobile">
+        {p.socialLinks.map((s) => (
+          <a class="level-item button is-white is-marginless" target="_blank" title={s.title} href={s.url}>
+            {s.icon ? <i class={s.icon}></i> : s.title}
+          </a>
+        ))}
+      </div>
+    )}
+  </div>
+</div>

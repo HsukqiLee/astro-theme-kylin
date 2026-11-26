@@ -1,0 +1,35 @@
+name: kylin-backend
+services:
+  directus:
+    image: directus/directus:12.6.0
+    container_name: Directus-Local
+    restart: unless-stopped
+    env_file: runtime.env
+    environment:
+      CACHE_ENABLED: "true"
+      CACHE_STORE: memory
+      CACHE_TTL: 1m
+      CACHE_AUTO_PURGE: "true"
+    ports:
+      - "127.0.0.1:8055:8055"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8055/server/ping').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 10s
+      start_period: 60s
+      retries: 12
+    volumes:
+      - database:/directus/database
+      - uploads:/directus/uploads
+      - extensions:/directus/extensions
+
+volumes:
+  database:
+    external: true
+    name: directus-data
+  uploads:
+    external: true
+    name: directus-uploads
+  extensions:
+    external: true
+    name: directus-extensions

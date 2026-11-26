@@ -1,0 +1,33 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { directus, type Post } from '../lib/directus';
+import { readItems } from '@directus/sdk';
+import { renderMarkdown } from '../lib/markdown';
+import { processContent, renderTocHtml } from '../lib/toc';
+import { processShortcodes } from '../lib/shortcode';
+import { siteConfig } from '../lib/config';
+
+const slug = Astro.params.slug;
+if (!slug) return Astro.rewrite('/404');
+const result = await directus.request(
+  readItems('posts', {
+    fields: ['id', 'title', 'content', 'excerpt'],
+    filter: { slug: { _eq: slug }, type: { _eq: 'page' }, status: { _eq: 'published' } },
+    limit: 1
+  })
+);
+const page = (result as Post[])[0];
+if (!page) return Astro.rewrite('/404');
+
+const rendered = processShortcodes(renderMarkdown(page.content || ''));
+const parsed = processContent(rendered);
+const tocHtml = renderTocHtml(parsed.toc);
+---
+<BaseLayout title={`${page.title} - ${siteConfig.title}`} description={page.excerpt || ''} tocHtml={tocHtml}>
+  <div class="card" data-no-instant>
+    <div class="card-content article article-single">
+      <h1 class="title is-size-3 is-size-4-mobile has-text-weight-normal">{page.title}</h1>
+      <div class="content" set:html={parsed.html}></div>
+    </div>
+  </div>
+</BaseLayout>

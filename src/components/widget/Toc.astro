@@ -1,0 +1,13 @@
+---
+interface Props { tocHtml: string }
+const { tocHtml } = Astro.props;
+if (!tocHtml) return;
+---
+<div class="card widget" id="toc">
+  <div class="card-content">
+    <div class="menu">
+      <h3 class="menu-label">文章目录</h3>
+      <Fragment set:html={tocHtml} />
+    </div>
+  </div>
+</div>

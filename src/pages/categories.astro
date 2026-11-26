@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CategoryTree from '../components/CategoryTree.astro';
+import { categoryTree } from '../lib/taxonomy';
+import { siteConfig } from '../lib/config';
+const nodes = await categoryTree();
+---
+<BaseLayout title={`分类 - ${siteConfig.title}`} pageKind="categories">
+  <div class="card widget">
+    <div class="card-content">
+      <div class="menu">
+        <h1 class="is-size-4 has-mb-6">分类</h1>
+        <CategoryTree nodes={nodes} />
+      </div>
+    </div>
+  </div>
+</BaseLayout>

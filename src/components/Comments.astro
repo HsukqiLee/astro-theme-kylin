@@ -1,0 +1,188 @@
+---
+import { directus, type Comment, formatDate } from '../lib/directus';
+import { readItems } from '@directus/sdk';
+import { createHash } from 'node:crypto';
+import { siteConfig } from '../lib/config';
+
+interface Props { postId: string }
+const { postId } = Astro.props;
+
+function avatarUrl(email: string | null): string {
+  const hash = email ? createHash('md5').update(email.trim().toLowerCase()).digest('hex') : '';
+  return hash ? `https://cravatar.cn/avatar/${hash}?d=mp&s=96` : '';
+}
+
+const all = (await directus.request(
+  readItems('comments', {
+    fields: ['id', 'author', 'email', 'website', 'content', 'date_created', 'parent'],
+    filter: { post: { _eq: postId }, status: { _eq: 'approved' } },
+    sort: ['date_created'],
+    limit: -1
+  })
+)) as Comment[];
+
+interface Node extends Comment { children: Node[] }
+const byId = new Map<string, Node>();
+all.forEach((c) => byId.set(c.id, { ...c, children: [] }));
+const roots: Node[] = [];
+for (const n of byId.values()) {
+    const pid = typeof n.parent === 'object' && n.parent ? (n.parent as Comment).id : (n.parent as string | null);
+  if (pid && byId.has(pid)) byId.get(pid)!.children.push(n);
+  else roots.push(n);
+}
+
+function esc(s: string): string {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+}
+
+function renderComment(n: Node, isChild = false): string {
+  const av = avatarUrl(n.email);
+  const size = isChild ? 'is-32x32' : 'is-48x48';
+  const isOwner = (n.email || '').trim().toLowerCase() === siteConfig.profile.email;
+  let html = '<div class="comment-item media">';
+  html += `<figure class="media-left"><p class="image ${size} avatar-wrap"><i class="fas fa-user"></i>${av ? `<img src="${av}" onerror="this.remove()" alt="${esc(n.author)}" loading="lazy">` : ''}</p></figure>`;
+  html += '<div class="media-content">';
+  html += '<div class="comment-header">';
+  let website = '';
+  try { const url = new URL(n.website || ''); if (['http:', 'https:'].includes(url.protocol)) website = url.href; } catch {}
+  html += website
+    ? `<a href="${esc(website)}" rel="noopener nofollow" target="_blank" class="comment-author">${esc(n.author)}</a>`
+    : `<span class="comment-author">${esc(n.author)}</span>`;
+  if (isOwner) html += '<span class="tag comment-tag-author">博主</span>';
+  html += '</div>';
+  html += `<div class="comment-meta"><time datetime="${formatDate(n.date_created)}">${formatDate(n.date_created)}</time>`;
+  html += `<a href="javascript:;" class="comment-reply" data-reply-to="${esc(n.id)}" data-reply-name="${esc(n.author)}"><i class="fas fa-reply"></i> 回复</a></div>`;
+  html += `<div class="comment-content">${esc(n.content).replace(/\n/g, '<br>')}</div>`;
+  if (n.children.length) {
+    html += '<div class="comment-children">';
+    n.children.forEach((c) => { html += renderComment(c, true); });
+    html += '</div>';
+  }
+  html += '</div></div>';
+  return html;
+}
+---
+<div class="card">
+  <div class="card-content comment-container">
+    <div class="comment-head">
+      <h3 class="title is-5 has-text-weight-normal">评论</h3>
+      {all.length > 0 && <span class="tag">{all.length} 条</span>}
+    </div>
+
+    <form class="comment-form" data-comment-form data-post-id={postId} method="post">
+      <input type="hidden" name="parent" value="" />
+      <div class="comment-form-grid">
+        <p class="image is-48x48 avatar-wrap"><i class="fas fa-user"></i></p>
+        <div class="comment-form-fields">
+          <div class="field">
+            <textarea class="textarea" name="content" rows="3" placeholder="写下你的评论…" maxlength="2000" required></textarea>
+          </div>
+          <div class="columns is-mobile is-multiline">
+            <div class="column is-one-third">
+              <input class="input is-small" type="text" name="author" placeholder="昵称 *" required />
+            </div>
+            <div class="column is-one-third">
+              <input class="input is-small" type="email" name="email" placeholder="邮箱 *" required />
+            </div>
+            <div class="column is-one-third">
+              <input class="input is-small" type="url" name="website" placeholder="网址（可选）" />
+            </div>
+          </div>
+          <div class="field is-grouped is-grouped-right">
+            <p class="control">
+              <span class="reply-hint tag is-light" hidden></span>
+              <button class="button is-small is-light" type="button" data-cancel-reply hidden>取消回复</button>
+            </p>
+            <p class="control">
+              <button class="button is-link is-rounded" type="submit">发送</button>
+            </p>
+          </div>
+        </div>
+      </div>
+    </form>
+    <p class="comment-status help" role="status" aria-live="polite"></p>
+
+    {all.length > 0 && (
+      <div id="comment-list">
+        {roots.map((n) => <Fragment set:html={renderComment(n)} />)}
+      </div>
+    )}
+  </div>
+</div>
+
+<script>
+  const bound = new WeakSet<HTMLFormElement>();
+  function initComments() {
+    document.querySelectorAll<HTMLFormElement>('form[data-comment-form]').forEach((form) => {
+      if (bound.has(form)) return;
+      bound.add(form);
+      const container = form.closest('.comment-container')!;
+      const hint = form.querySelector('.reply-hint') as HTMLElement;
+      const parentInput = form.querySelector('input[name="parent"]') as HTMLInputElement;
+      const cancel = form.querySelector<HTMLButtonElement>('[data-cancel-reply]')!;
+      const status = container.querySelector<HTMLElement>('.comment-status')!;
+
+      container.querySelectorAll('.comment-reply').forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+          event.preventDefault();
+          const id = btn.getAttribute('data-reply-to');
+          const name = btn.getAttribute('data-reply-name');
+          parentInput.value = id || '';
+          hint.hidden = false;
+          hint.style.display = 'inline-flex';
+          hint.textContent = `回复 @${name}`;
+          cancel.hidden = false;
+          form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          form.querySelector<HTMLTextAreaElement>('textarea')!.focus({ preventScroll: true });
+        });
+      });
+      cancel.addEventListener('click', () => {
+        parentInput.value = '';
+        hint.hidden = true;
+        hint.style.display = 'none';
+        cancel.hidden = true;
+      });
+
+      let submitting = false;
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (submitting) return;
+        const fd = new FormData(form);
+        const payload = {
+          post: form.getAttribute('data-post-id'),
+          parent: parentInput.value || null,
+          author: fd.get('author'),
+          email: fd.get('email'),
+          website: fd.get('website'),
+          content: fd.get('content')
+        };
+        const sendBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+        submitting = true;
+        sendBtn.disabled = true;
+        status.textContent = '正在提交评论…';
+        try {
+          const apiOrigin = document.querySelector<HTMLMetaElement>('meta[name="kylin:api-origin"]')?.content || '';
+          const res = await fetch(apiOrigin + '/api/comment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          if (res.ok && data.ok) {
+            form.querySelector<HTMLTextAreaElement>('textarea')!.value = '';
+            cancel.click();
+            status.textContent = '评论已提交，审核后公开。';
+          } else status.textContent = data.error || '评论提交失败，请稍后再试。';
+        } catch {
+          status.textContent = '网络连接失败，请重新提交。';
+        } finally {
+          submitting = false;
+          sendBtn.disabled = false;
+        }
+      });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initComments);
+  else initComments();
+  document.addEventListener('astro:page-load', initComments);
+</script>

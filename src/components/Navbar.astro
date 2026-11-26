@@ -1,0 +1,45 @@
+---
+import { siteConfig } from '../lib/config';
+const current = Astro.url.pathname;
+---
+<nav class="navbar navbar-main">
+  <div class="container">
+    <div class="navbar-brand is-flex-center">
+      <a class="navbar-item navbar-logo" href="/">
+        {siteConfig.logoImg
+          ? <>
+              <img class="logo-light" src={siteConfig.logoImg} alt={siteConfig.title} />
+              <img class="logo-dark" src={siteConfig.logoImgDark || siteConfig.logoImg} alt={siteConfig.title} />
+            </>
+          : (siteConfig.logoText || siteConfig.title)}
+      </a>
+    </div>
+    <div class="navbar-menu">
+      <div class="navbar-start">
+        {siteConfig.navbar.map((item) => (
+          <a class:list={['navbar-item', { 'is-active': current === item.url }]} href={item.url}>{item.name}</a>
+        ))}
+      </div>
+      <div class="navbar-end">
+        {siteConfig.navbarIcons.map((icon) => (
+          <a class="navbar-item" target="_blank" title={icon.title} href={icon.url}>
+            <i class={icon.icon}></i>
+          </a>
+        ))}
+        <a class="navbar-item is-hidden-tablet catalogue" title="目录" href="javascript:;">
+          <i class="fas fa-list-ul"></i>
+        </a>
+        {siteConfig.features.darkMode && (
+          <a class="navbar-item dark-adjust" href="javascript:;" title="暗黑模式">
+            <i class="fas fa-adjust" id="darkModeIcon"></i>
+          </a>
+        )}
+        {siteConfig.features.search && (
+          <a class="navbar-item search" href="javascript:;" title="搜索">
+            <i class="fas fa-search"></i>
+          </a>
+        )}
+      </div>
+    </div>
+  </div>
+</nav>

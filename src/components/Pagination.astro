@@ -1,0 +1,42 @@
+---
+interface Props {
+  page: number;
+  pages: number;
+  baseUrl: string;
+}
+const { page, pages, baseUrl } = Astro.props;
+if (pages <= 1) return;
+
+function pageUrl(n: number): string {
+  if (n <= 1) return baseUrl;
+  const sep = baseUrl.includes('?') ? '&' : '?';
+  return `${baseUrl}${sep}page=${n}`;
+}
+
+const items: (number | '...')[] = [];
+for (let i = 1; i <= pages; i++) {
+  if (i === 1 || i === pages || Math.abs(i - page) <= 1) items.push(i);
+  else if (items[items.length - 1] !== '...') items.push('...');
+}
+---
+<div class="card card-transparent">
+  <nav class="pagination is-centered" role="navigation" aria-label="pagination">
+    <ul class="pagination-list">
+      {page > 1 && (
+        <li><a class="pagination-link has-text-black-ter" href={pageUrl(page - 1)}>&laquo;</a></li>
+      )}
+      {items.map((item) =>
+        item === '...' ? (
+          <li><span class="pagination-ellipsis has-text-black-ter">...</span></li>
+        ) : item === page ? (
+          <li><a class="pagination-link is-current" href={pageUrl(item)}>{item}</a></li>
+        ) : (
+          <li><a class="pagination-link has-text-black-ter" href={pageUrl(item)}>{item}</a></li>
+        )
+      )}
+      {page < pages && (
+        <li><a class="pagination-link has-text-black-ter" href={pageUrl(page + 1)}>&raquo;</a></li>
+      )}
+    </ul>
+  </nav>
+</div>

@@ -1,0 +1,44 @@
+---
+import { directus, postCardFields, type Post, formatDate } from '../../lib/directus';
+import { siteConfig } from '../../lib/config';
+import { readItems } from '@directus/sdk';
+
+const posts = await directus.request(
+  readItems('posts', {
+    fields: postCardFields,
+    filter: { status: { _eq: 'published' }, type: { _eq: 'post' } },
+    sort: ['-published_at'],
+    limit: siteConfig.options.recentPostLimit
+  })
+);
+---
+<div class="card widget">
+  <div class="card-content">
+    <h3 class="menu-label">最新文章</h3>
+    {(posts as Post[]).map((post) => {
+      const cat = post.category && typeof post.category === 'object' ? post.category : null;
+      return (
+        <div class="media">
+          {post.thumbnail && (
+            <a href={`/archives/${post.slug}/`} class="media-left">
+              <p class="image is-64x64">
+                <img class="thumbnail" src={post.thumbnail} loading="lazy" alt={post.title} />
+              </p>
+            </a>
+          )}
+          <div class="media-content">
+            <div class="content">
+              <div><time class="has-text-grey is-size-7 is-uppercase" datetime={formatDate(post.published_at)}>{formatDate(post.published_at)}</time></div>
+              <a href={`/archives/${post.slug}/`} class="has-link-black-ter is-size-6">{post.title}</a>
+              {cat && (
+                <p class="is-size-7 is-uppercase">
+                  <a class="has-link-grey" href={`/category/${cat.slug}/`}>{cat.name}</a>
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</div>

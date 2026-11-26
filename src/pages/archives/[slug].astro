@@ -1,0 +1,127 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Comments from '../../components/Comments.astro';
+import Donate from '../../components/Donate.astro';
+import { directus, postCardFields, type Post, formatDate } from '../../lib/directus';
+import { readItems } from '@directus/sdk';
+import { renderMarkdown } from '../../lib/markdown';
+import { processContent, renderTocHtml } from '../../lib/toc';
+import { processShortcodes } from '../../lib/shortcode';
+import { siteConfig } from '../../lib/config';
+
+const slug = Astro.params.slug;
+if (!slug) return Astro.rewrite('/404');
+const posts = await directus.request(
+  readItems('posts', {
+    fields: [...postCardFields, 'content', 'date_updated', { tags: [{ tags_id: ['id', 'name', 'slug'] }] }],
+    filter: { slug: { _eq: slug }, status: { _eq: 'published' }, type: { _eq: 'post' } },
+    limit: 1
+  })
+);
+const post = (posts as Post[])[0];
+if (!post) return Astro.rewrite('/404');
+
+const rendered = processShortcodes(renderMarkdown(post.content || ''));
+const parsed = processContent(rendered);
+const contentHtml = parsed.html;
+const tocHtml = renderTocHtml(parsed.toc);
+const tags = (post.tags || []).flatMap((j) => j.tags_id && typeof j.tags_id === 'object' ? [j.tags_id] : []);
+const cat = post.category && typeof post.category === 'object' ? post.category : null;
+
+// prev / next
+const all = await directus.request(
+  readItems('posts', { fields: ['id','title','slug','published_at'], filter: { status: { _eq: 'published' }, type: { _eq: 'post' } }, sort: ['-published_at'], limit: -1 })
+);
+const idx = (all as Post[]).findIndex((p) => p.id === post.id);
+const prevPost = idx > 0 ? (all as Post[])[idx - 1] : null;
+const nextPost = idx >= 0 && idx < (all as Post[]).length - 1 ? (all as Post[])[idx + 1] : null;
+---
+<BaseLayout title={`${post.title} - ${siteConfig.title}`} description={post.excerpt || ''} tocHtml={tocHtml} isPost={true}>
+  <div class="card" data-no-instant>
+    {post.thumbnail && (
+      <div class="card-image">
+        <span class="image is-7by1">
+          <img class="thumbnail" src={post.thumbnail} loading="lazy" alt={post.title} />
+        </span>
+      </div>
+    )}
+    <div class="card-content article article-single">
+      <div class="level article-meta is-size-7 is-uppercase is-mobile is-overflow-x-auto">
+        <div class="level-left">
+          <time class="level-item has-text-grey" datetime={formatDate(post.published_at)}>{formatDate(post.published_at)}</time>
+          {cat && (
+            <div class="level-item article-cat">
+              {cat.parent && typeof cat.parent === 'object' && (
+                <>
+                  <a class="has-link-grey" href={`/category/${(cat.parent as any).slug}/`}>{(cat.parent as any).name}</a>
+                  <span class="cat-sep">/</span>
+                </>
+              )}
+              <a class="has-link-grey" href={`/category/${cat.slug}/`}>{cat.name}</a>
+            </div>
+          )}
+        </div>
+      </div>
+      <h1 class="title is-size-3 is-size-4-mobile has-text-weight-normal">{post.title}</h1>
+      <div class="content" set:html={contentHtml}></div>
+
+      {siteConfig.options.postLicense && (
+        <div class="article-licensing box">
+          <div class="licensing-title"><p>{post.title}</p><p><a href={Astro.url.href}>{Astro.url.href}</a></p></div>
+          <div class="licensing-meta level is-mobile">
+            <div class="level-left">
+              <div class="level-item is-narrow"><div><h6>作者</h6><a href="/">{siteConfig.profile.author}</a></div></div>
+              <div class="level-item is-narrow"><div><h6>日期</h6><p>{formatDate(post.published_at)}</p></div></div>
+              <div class="level-item is-narrow"><div><h6>更新于</h6><p>{formatDate(post.date_updated)}</p></div></div>
+              <div class="level-item is-narrow"><div><h6>许可</h6><p><a rel="noopener" target="_blank" title="CC BY-NC-ND 4.0" href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh">CC BY-NC-ND 4.0</a></p></div></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tags.length > 0 && (
+        <div class="level is-size-7">
+          <div class="level-start">
+            <div class="level-item">
+              <span class="is-size-6 has-text-grey has-mr-7">#</span>
+              <span>
+                {tags.map((t, i) => (
+                  <><a class="has-link-grey" href={`/tag/${t.slug}/`}>{t.name}</a>{i < tags.length - 1 && <>&nbsp;&nbsp;</>}</>
+                ))}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+
+  <Donate />
+
+  {(prevPost || nextPost) && (
+    <div class="card">
+      <div class="card-content">
+        <div class="level post-navigation is-flex-wrap is-mobile">
+          <div class="level-start">
+            {prevPost && (
+              <a class="level level-item has-link-grey article-nav-prev" href={`/archives/${prevPost.slug}/`}>
+                <i class="level-item fas fa-chevron-left"></i>
+                <span class="level-item">{prevPost.title}</span>
+              </a>
+            )}
+          </div>
+          <div class="level-end">
+            {nextPost && (
+              <a class="level level-item has-link-grey article-nav-next" href={`/archives/${nextPost.slug}/`}>
+                <span class="level-item">{nextPost.title}</span>
+                <i class="level-item fas fa-chevron-right"></i>
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+
+  <Comments postId={post.id} />
+</BaseLayout>

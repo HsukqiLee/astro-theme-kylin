@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { directus, type Tag } from '../lib/directus';
+import { readItems } from '@directus/sdk';
+import { tagCounts } from '../lib/taxonomy';
+import { siteConfig } from '../lib/config';
+
+const tags = await directus.request(readItems('tags', { fields: ['id', 'name', 'slug'], sort: ['name'], limit: -1 }));
+const countMap = await tagCounts();
+---
+<BaseLayout title={`标签 - ${siteConfig.title}`} pageKind="tags">
+  <div class="card widget">
+    <div class="card-content">
+      <div class="menu">
+        <h1 class="is-size-4 has-mb-6">标签</h1>
+        <div class="field is-grouped is-grouped-multiline">
+          {(tags as Tag[]).map((t) => (
+            <div class="control">
+              <a class="tags has-addons" href={`/tag/${t.slug}/`}>
+                <span class="tag">{t.name}</span>
+                <span class="tag">{countMap[t.id] || 0}</span>
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

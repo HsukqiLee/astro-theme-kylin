@@ -1,0 +1,39 @@
+---
+import { siteConfig } from '../lib/config';
+
+const icons: Record<string, string> = {
+  qq: 'fab fa-qq',
+  wechat: 'fab fa-weixin',
+  alipay: 'fab fa-alipay',
+  afdian: 'fas fa-charging-station',
+  paypal: 'fab fa-paypal',
+  buymeacoffee: 'fas fa-coffee'
+};
+const labels: Record<string, string> = {
+  qq: 'QQ', wechat: '微信', alipay: '支付宝', afdian: '爱发电', paypal: 'Paypal', buymeacoffee: '咖啡'
+};
+
+if (!siteConfig.donate.enabled || !siteConfig.donate.buttons.length) return;
+---
+<div class="card">
+  <div class="card-content">
+    <h3 class="menu-label has-text-centered">打赏</h3>
+    <div class="buttons is-centered" data-no-instant>
+      {siteConfig.donate.buttons.map((b) => (
+        <a
+          class="button donate"
+          data-type={b.type}
+          href={b.url || 'javascript:;'}
+          target={b.url ? '_blank' : undefined}
+          rel={b.url ? 'noopener' : undefined}
+        >
+          <span class="icon is-small"><i class={icons[b.type] || 'fas fa-heart'}></i></span>
+          <span>{labels[b.type] || b.type}</span>
+          {b.image && (
+            <span class="qrcode"><img src={b.image} title={labels[b.type] || b.type} alt={b.type} loading="lazy" /></span>
+          )}
+        </a>
+      ))}
+    </div>
+  </div>
+</div>

@@ -1,0 +1,50 @@
+---
+import { siteConfig } from '../lib/config';
+const year = new Date().getFullYear();
+---
+<footer data-no-instant class="footer">
+  <div class="container">
+    <div class="level">
+      <div class="level-start has-text-centered-mobile">
+        <a class="footer-logo is-block has-mb-6" href="/">
+          {siteConfig.logoImg
+            ? <>
+                <img class="logo-light" src={siteConfig.logoImg} alt={siteConfig.title} />
+                <img class="logo-dark" src={siteConfig.logoImgDark || siteConfig.logoImg} alt={siteConfig.title} />
+              </>
+            : (siteConfig.logoText || siteConfig.title)}
+        </a>
+        <p class="is-size-7">
+          &copy; {year} {siteConfig.title}.&nbsp;All rights reserved.
+          <br />
+          Powered by <a href="https://directus.io/" rel="noopener" target="_blank">Directus</a> + <a href="https://astro.build/" rel="noopener" target="_blank">Astro</a>.&nbsp;Theme <a href="https://github.com/HsukqiLee" rel="noopener" target="_blank">Kylin</a>.
+        </p>
+        {siteConfig.footer.beian && (
+          <span>
+            <img class="lazyload" src="/img/icp.png" alt="beian" />
+            <a href={siteConfig.footer.beian} rel="noopener" target="_blank">{siteConfig.footer.beian}</a>
+          </span>
+        )}
+        {siteConfig.footer.icp && (
+          <a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">{siteConfig.footer.icp}</a>
+        )}
+        <Fragment set:html={siteConfig.footer.contentLeft} />
+      </div>
+      <div class="level-end">
+        {siteConfig.footer.links.length > 0 && (
+          <div class="field has-addons is-flex-center-mobile has-mt-5-mobile is-flex-wrap is-flex-middle">
+            {siteConfig.footer.links.map((link) => (
+              <p class="control">
+                <a class:list={['button is-white', { 'is-large': link.icons.length > 0 }]} rel="noopener noreferrer" target="_blank" title={link.title} href={link.url}>
+                  {link.icons.length === 0
+                    ? link.title
+                    : link.icons.map((icon) => <i class={icon}></i>)}
+                </a>
+              </p>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,33 @@
+---
+import { directus } from '../../lib/directus';
+import { readItems } from '@directus/sdk';
+
+const posts = await directus.request(
+  readItems('posts', { fields: ['published_at'], filter: { status: { _eq: 'published' }, type: { _eq: 'post' } }, sort: ['-published_at'], limit: -1 })
+);
+
+const groups = new Map<string, number>();
+for (const p of posts as { published_at: string | null }[]) {
+  if (!p.published_at) continue;
+  const ym = p.published_at.substring(0, 7);
+  groups.set(ym, (groups.get(ym) || 0) + 1);
+}
+const months = [...groups.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+---
+<div class="card widget">
+  <div class="card-content">
+    <div class="menu">
+      <h3 class="menu-label">归档</h3>
+      <ul class="menu-list">
+        {months.map(([ym, count]) => (
+          <li>
+            <a class="level is-marginless" href={`/archives/?m=${ym}`}>
+              <span class="level-start"><span class="level-item">{ym}</span></span>
+              <span class="level-end"><span class="level-item tag">{count}</span></span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</div>

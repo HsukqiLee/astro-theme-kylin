@@ -1,0 +1,34 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostCard from '../components/PostCard.astro';
+import Pagination from '../components/Pagination.astro';
+import { directus, postCardFields, type Post } from '../lib/directus';
+import { readItems, aggregate } from '@directus/sdk';
+import { siteConfig } from '../lib/config';
+
+const PER_PAGE = 10;
+const page = Math.max(1, parseInt(Astro.url.searchParams.get('page') || '1', 10) || 1);
+
+const posts = (await directus.request(
+  readItems('posts', {
+    fields: postCardFields,
+    filter: { status: { _eq: 'published' }, type: { _eq: 'post' } },
+    sort: ['-published_at'],
+    page,
+    limit: PER_PAGE
+  })
+)) as Post[];
+
+let total = posts.length;
+try {
+  const cnt = await directus.request(
+    aggregate('posts', { query: { filter: { status: { _eq: 'published' }, type: { _eq: 'post' } } }, aggregate: { count: ['id'] } })
+  );
+  total = Number((cnt as any[])[0]?.count?.id ?? posts.length);
+} catch { /* ignore */ }
+const pages = Math.max(1, Math.ceil(total / PER_PAGE));
+---
+<BaseLayout title={siteConfig.title}>
+  {posts.map((post) => <PostCard post={post} />)}
+  <Pagination page={page} pages={pages} baseUrl="/" />
+</BaseLayout>

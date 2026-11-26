@@ -1,0 +1,24 @@
+services:
+  web:
+    build:
+      context: .
+      args:
+        SITE_URL: ${SITE_URL:-https://blog.tsinbei.com}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DIRECTUS_URL: http://directus:8055
+    networks:
+      - backend
+    ports:
+      - "127.0.0.1:4433:4433"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4433/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 15s
+      start_period: 30s
+
+networks:
+  backend:
+    external: true
+    name: kylin-backend_default

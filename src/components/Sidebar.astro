@@ -1,0 +1,45 @@
+---
+import { siteConfig } from '../lib/config';
+import { asideWidgets, sideColumnClass, type PageKind } from '../lib/aside';
+import Profile from './widget/Profile.astro';
+import Category from './widget/Category.astro';
+import LinkWidget from './widget/Link.astro';
+import RecentPost from './widget/RecentPost.astro';
+import Archive from './widget/Archive.astro';
+import Tag from './widget/Tag.astro';
+import Toc from './widget/Toc.astro';
+
+interface Props { tocHtml?: string; kind?: PageKind }
+const { tocHtml = '', kind = 'other' } = Astro.props;
+
+const { left, right, columnCount } = asideWidgets(kind);
+const colClass = sideColumnClass(columnCount);
+
+const WIDGETS: Record<string, typeof Profile> = {
+  profile: Profile,
+  category: Category,
+  link: LinkWidget,
+  recentpost: RecentPost,
+  archive: Archive,
+  tag: Tag
+};
+
+---
+{left.length > 0 && (
+  <aside class:list={[colClass, 'has-order-1', 'column-left', { 'is-sticky': siteConfig.aside.leftSticky }]}>
+    {left.map((name) => {
+      if (name === 'toc') return tocHtml ? <Toc tocHtml={tocHtml} /> : null;
+      const Comp = WIDGETS[name];
+      return Comp ? <Comp /> : null;
+    })}
+  </aside>
+)}
+{right.length > 0 && (
+  <aside class:list={[colClass, 'has-order-3', 'column-right', { 'is-sticky': siteConfig.aside.rightSticky }]}>
+    {right.map((name) => {
+      if (name === 'toc') return tocHtml ? <Toc tocHtml={tocHtml} /> : null;
+      const Comp = WIDGETS[name];
+      return Comp ? <Comp /> : null;
+    })}
+  </aside>
+)}
