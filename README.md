@@ -101,7 +101,7 @@ docker compose -f compose.production.yml up -d --build --wait
 ```
 
 - `https://blog.tsinbei.com`：完整 SSR 页面、文章正文、canonical 和 RSS。发布内容不需要重新构建；HTML 返回 `no-store`。
-- `https://blog.tsinbei.cn`：EdgeOne 加速的 `/_astro/`、`/js/`、`/user/avatar/`，以及 `/api/search` 和 `/api/comment`。根路径和管理页面返回 404。
+- `https://blog.tsinbei.cn`：EdgeOne 加速的 `/_astro/`、`/js/`、`/user/avatar/`，以及 `/api/search` 和 `/api/comment`。根路径 301 跳转到 `https://blog.tsinbei.com/`，管理页面返回 404。
 - Astro 通过 Compose 内网调用 Directus；浏览器不接触 Directus Token。跨域 API 只允许博客来源，评论及搜索不缓存。
 - CSS 和客户端模块通过 Astro `assetsPrefix` 指向 `.cn`；普通脚本与浏览器 API 使用 `PUBLIC_RESOURCE_ORIGIN`。原有正文媒体和第三方 CDN 地址保持原样。
 - 源站对 `/_astro/` 哈希资源设置一年 immutable 缓存，普通 `/js/` 为五分钟。上线实测加速链路将公网缓存头改为 `max-age=0`、返回 MISS；本次未修改 CDN/WAF 配置，不代表已实现边缘缓存命中。
