@@ -105,9 +105,11 @@ docker compose -f compose.production.yml up -d --build --wait
 - Astro 通过 Compose 内网调用 Directus；浏览器不接触 Directus Token。跨域 API 只允许博客来源，评论及搜索不缓存。
 - CSS 和客户端模块通过 Astro `assetsPrefix` 指向 `.cn`；普通脚本与浏览器 API 使用 `PUBLIC_RESOURCE_ORIGIN`。原有正文媒体和第三方 CDN 地址保持原样。
 - 源站对 `/_astro/` 哈希资源设置一年 immutable 缓存，普通 `/js/` 为五分钟。上线实测加速链路将公网缓存头改为 `max-age=0`、返回 MISS；本次未修改 CDN/WAF 配置，不代表已实现边缘缓存命中。
-- Directus 数据保存在 `directus/database`、`directus/uploads`、`directus/extensions`，均不进入 Git；管理员端口只绑定服务器 loopback。
+- Directus 数据保存在 `directus/database`、`directus/uploads`、`directus/extensions`，均不进入 Git；8055 端口绑定服务器 loopback 和 Docker bridge 网关，供 Caddy 转发。
 
-管理后台通过 SSH 隧道访问（在自己的电脑运行）：
+管理后台入口：`https://blog.tsinbei.com/admin`，自动跳转到同域名的 `/directus/admin/login`。Directus 的管理页面和 API 统一位于 `/directus/`，避免与博客路由冲突。`.cn` 的管理页面仍返回 404。
+
+也可以通过 SSH 隧道访问（在自己的电脑运行）：
 
 ```sh
 ssh -N -L 18055:127.0.0.1:8055 root@sapiens-lxq

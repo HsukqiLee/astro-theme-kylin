@@ -1,6 +1,15 @@
 blog.tsinbei.com {
   encode zstd gzip
-  reverse_proxy host.docker.internal:4433
+  handle_path /directus/* {
+    reverse_proxy host.docker.internal:8055
+  }
+  @admin path /admin /admin/*
+  handle @admin {
+    redir * /directus{uri} 302
+  }
+  handle {
+    reverse_proxy host.docker.internal:4433
+  }
 }
 
 blog.tsinbei.cn {
