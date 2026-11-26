@@ -1,22 +1,18 @@
 ---
 ---
-<div class="searchbox" id="searchbox">
+<div class="searchbox" id="searchbox" role="dialog" aria-modal="true" aria-label="搜索文章" aria-hidden="true">
   <div class="searchbox-container">
     <div class="searchbox-header">
-      <div class="searchbox-input-wrapper">
+      <div class="searchbox-input-container">
         <input type="text" class="searchbox-input" id="search-input" placeholder="输入关键词搜索…" aria-label="搜索文章" maxlength="200" autocomplete="off" />
       </div>
-      <a class="searchbox-close" href="javascript:;" id="search-close" aria-label="关闭搜索">&times;</a>
+      <button type="button" class="searchbox-close" id="search-close" aria-label="关闭搜索">&times;</button>
     </div>
     <div class="searchbox-body">
-      <div class="searchbox-result-wrapper">
-        <div class="ins-section-container">
-          <section class="ins-section">
-            <header class="ins-section-header">搜索结果</header>
-            <div id="search-results" aria-live="polite"></div>
-          </section>
-        </div>
-      </div>
+      <section class="searchbox-result-section">
+        <header>搜索结果</header>
+        <div id="search-results" aria-live="polite"></div>
+      </section>
     </div>
   </div>
 </div>

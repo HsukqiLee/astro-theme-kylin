@@ -23,13 +23,34 @@
     var close = document.getElementById('search-close');
     if (!box || !input || !results) return;
 
-    function open() { box.classList.add('show'); setTimeout(function () { input.focus(); }, 50); }
-    function hide() { box.classList.remove('show'); }
+    function open() {
+      box.classList.add('show');
+      box.setAttribute('aria-hidden', 'false');
+      document.documentElement.classList.add('search-open');
+      input.focus();
+    }
+    function hide() {
+      box.classList.remove('show');
+      box.setAttribute('aria-hidden', 'true');
+      document.documentElement.classList.remove('search-open');
+      if (trigger) trigger.focus();
+    }
 
     if (trigger) trigger.addEventListener('click', function (e) { e.preventDefault(); open(); }, options);
     if (close) close.addEventListener('click', function (e) { e.preventDefault(); hide(); }, options);
+    box.addEventListener('click', function (e) { if (e.target === box) hide(); }, options);
+    box.addEventListener('keydown', function (e) {
+      if (e.key !== 'Tab') return;
+      var focusable = Array.from(box.querySelectorAll('input, button, a[href]'));
+      var first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }, options);
+    document.addEventListener('astro:before-swap', function () {
+      document.documentElement.classList.remove('search-open');
+    }, options);
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') hide();
+      if (e.key === 'Escape' && box.classList.contains('show')) hide();
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); open(); }
     }, options);
 
@@ -43,16 +64,16 @@
         .then(function (r) { return r.json(); })
         .then(function (data) {
           var list = data.results || [];
-          if (data.error) { results.textContent = data.error; return; }
+          if (data.error) { results.innerHTML = '<p class="searchbox-message">' + esc(data.error) + '</p>'; return; }
           if (!list.length) {
-            results.innerHTML = '<div class="ins-search-item"><header><span class="ins-title">没有找到相关文章</span></header></div>';
+            results.innerHTML = '<p class="searchbox-message">没有找到相关文章</p>';
             return;
           }
           results.innerHTML = list.map(function (p) {
-            return '<a class="ins-search-item" href="/archives/' + esc(p.slug) + '/">' +
-              '<header><i class="fa fa-file"></i><span class="ins-title">' + esc(p.title) + '</span></header>' +
-              '<p class="ins-search-preview">' + esc((p.excerpt || '').slice(0, 90)) + '</p>' +
-              '</a>';
+            return '<a class="searchbox-result-item" href="/archives/' + encodeURIComponent(p.slug) + '/">' +
+              '<i class="fas fa-file-alt searchbox-result-icon" aria-hidden="true"></i>' +
+              '<div class="searchbox-result-content"><span class="searchbox-result-title">' + esc(p.title) + '</span>' +
+              '<p class="searchbox-result-preview">' + esc((p.excerpt || '').slice(0, 90)) + '</p></div></a>';
           }).join('');
         })
         .catch(function (error) { if (error.name !== 'AbortError') results.textContent = '搜索暂时不可用，请稍后再试。'; });

@@ -24,7 +24,8 @@ const month = Astro.url.searchParams.get('m');
 if (month) canonical.searchParams.set('m', month);
 
 const kind: PageKind = isPost ? 'post' : pageKind;
-const { columnCount } = asideWidgets(kind);
+const { columnCount, left, right } = asideWidgets(kind);
+const hasToc = Boolean(tocHtml.trim()) && [...left, ...right].includes('toc');
 const mainClass =
   columnCount === 1
     ? 'column is-12 column-main'
@@ -67,7 +68,7 @@ const mainClass =
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/css/lightgallery-bundle.min.css" />
   </head>
   <body class={`is-${columnCount}-column`}>
-    <Navbar />
+    <Navbar hasToc={hasToc} />
     <div class="section">
       <div class="container">
         <div class="columns">

@@ -1,6 +1,8 @@
 ---
 import { siteConfig } from '../lib/config';
 const current = Astro.url.pathname;
+interface Props { hasToc?: boolean }
+const { hasToc = false } = Astro.props;
 ---
 <nav class="navbar navbar-main">
   <div class="container">
@@ -26,9 +28,9 @@ const current = Astro.url.pathname;
             <i class={icon.icon}></i>
           </a>
         ))}
-        <a class="navbar-item is-hidden-tablet catalogue" title="目录" href="javascript:;">
+        {hasToc && <a class="navbar-item is-hidden-tablet catalogue" title="目录" href="javascript:;">
           <i class="fas fa-list-ul"></i>
-        </a>
+        </a>}
         {siteConfig.features.darkMode && (
           <a class="navbar-item dark-adjust" href="javascript:;" title="暗黑模式">
             <i class="fas fa-adjust" id="darkModeIcon"></i>
